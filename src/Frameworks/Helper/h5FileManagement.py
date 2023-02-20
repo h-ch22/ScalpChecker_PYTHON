@@ -5,9 +5,13 @@ import tensorflow as tf
 import os
 
 from keras.utils import img_to_array, load_img
+
+from include.vit_keras import _visualize
 from src.Frameworks.Models.ANALYSIS_TYPE_MODEL import ANALYSIS_TYPE_MODEL
 from keras.models import Model, load_model
 from datetime import date
+
+from src.Frameworks.Models.MODEL_TYPE import MODEL_TYPE
 
 today = date.today()
 
@@ -71,6 +75,23 @@ def __createGradCAM__(img, model, type, id, x):
 
     __saveImage__(np.uint8(255 * cam), type, id)
 
+def __createAttentionMap__(img, model, type, id, x):
+    path = img
+    img = load_img(img)
+    img = img_to_array(img)
+
+    outputs, weights, num_heads, attention_mask = _visualize.attention_map(model=model.layers[0], image=img)
+
+    heatmap = np.maximum(attention_mask.squeeze(), 0) / tf.math.reduce_max(attention_mask)
+    heatmap = heatmap.numpy()
+
+    _img = __ImgReadUtf8__(path)
+    _img = cv2.cvtColor(_img, cv2.COLOR_BGR2RGB)
+    heatmap_img = cv2.applyColorMap((attention_mask * img).astype(np.uint8), cv2.COLORMAP_JET)
+    overlay_img = cv2.addWeighted(heatmap_img, 0.5, _img, 0.5, 0)
+
+    __saveImage__(overlay_img, type, id)
+
 
 def __saveImage__(img, type: ANALYSIS_TYPE_MODEL, id):
     date = today.strftime("%m.%d.%y")
@@ -95,6 +116,32 @@ def __saveImage__(img, type: ANALYSIS_TYPE_MODEL, id):
         os.mkdir(imgPath)
 
     cv2.imwrite(IMG_DIR + "\\" + str(date) + "_" + type.name + "_" + str(id) + ".png", img)
+
+
+def __analysis_ViT__(img, type: ANALYSIS_TYPE_MODEL, id, modelRoot):
+    if img is None:
+        print("Image directory is none.")
+        return False
+
+    else:
+        path = img
+        test_image = tf.keras.utils.load_img(img, target_size=(224, 224))
+        x = tf.keras.utils.img_to_array(test_image)
+        x = np.expand_dims(x, axis=0)
+        x = x.astype('float32')
+        x /= 255
+
+        model = load_model(modelRoot)
+        preds = model.predict(x)
+
+        labels = ["Severity : level0", "Severity : level1", "Severity : level2", "Severity : level3"]
+        pred_label = labels[int(np.argmax(preds))]
+
+        img = __loadImage__(path)
+        img = np.expand_dims(img, axis=0)
+        cam = __createAttentionMap__(path, model, type, id, img)
+
+        return pred_label
 
 
 def __analysis__(img, type: ANALYSIS_TYPE_MODEL, id, modelRoot):
@@ -127,8 +174,6 @@ def __analysis__(img, type: ANALYSIS_TYPE_MODEL, id, modelRoot):
         img = np.expand_dims(img, axis=0)
         cam = __createGradCAM__(path, model, type, id, img)
 
-        #cv2.imshow(cam)
-
         return names
 
 
@@ -138,19 +183,29 @@ class h5FileManagement:
 
         print("Tensorflow loaded with version %s" % (tf.__version__))
 
-    def analysis(self, img, type: ANALYSIS_TYPE_MODEL, id, modelRoot):
+    def analysis(self, img, type: ANALYSIS_TYPE_MODEL, id, modelRoot, modelType):
         if self.detectGPU():
             print("GPU is available, tensorflow will work with GPU : 0")
             with tf.device('/device:GPU:0'):
-                result = __analysis__(img, type, id, modelRoot)
-                return result
+                if modelType == MODEL_TYPE.ViT:
+                    result = __analysis_ViT__(img, type, id, modelRoot)
+                    return result
+
+                else:
+                    result = __analysis__(img, type, id, modelRoot)
+                    return result
 
         else:
             print("GPU is not available, tensorflow will work with CPU")
 
             with tf.device('/device:cpu:0'):
-                result = __analysis__(img, type, id, modelRoot)
-                return result
+                if modelType == MODEL_TYPE.ViT:
+                    result = __analysis_ViT__(img, type, id, modelRoot)
+                    return result
+
+                else:
+                    result = __analysis__(img, type, id, modelRoot)
+                    return result
 
     def detectGPU(self):
         return len(tf.config.list_physical_devices('GPU')) > 0
