@@ -3,10 +3,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import os
+import tensorflow_addons as tfa
 
 from keras.utils import img_to_array, load_img
-
 from include.vit_keras import _visualize
+from include.vit_keras import vit, utils
 from src.Frameworks.Models.ANALYSIS_TYPE_MODEL import ANALYSIS_TYPE_MODEL
 from keras.models import Model, load_model
 from datetime import date
@@ -14,6 +15,7 @@ from datetime import date
 from src.Frameworks.Models.MODEL_TYPE import MODEL_TYPE
 
 today = date.today()
+
 
 def __ImgReadUtf8__(path):
     stream = open(path.encode('utf-8'), 'rb')
@@ -52,9 +54,9 @@ def __createGradCAM__(img, model, type, id, x):
     heatmap = heatmap.numpy()
 
     img = __ImgReadUtf8__(img)
-    #img = img_to_array(img)
+    # img = img_to_array(img)
     img = cv2.resize(img, (480, 480))
-    img = np.array(img)[:,:,::-1]
+    img = np.array(img)[:, :, ::-1]
     img = np.float32(img) / 255
     heatmap = cv2.applyColorMap(np.uint8(255 * heatmap), cv2.COLORMAP_JET)
     heatmap = np.float32(heatmap) / 255
@@ -75,18 +77,18 @@ def __createGradCAM__(img, model, type, id, x):
 
     __saveImage__(np.uint8(255 * cam), type, id)
 
-def __createAttentionMap__(img, model, type, id, x):
+
+def __createAttentionMap__(img, model, type, id):
     path = img
-    img = load_img(img)
+    img = load_img(img, target_size=(224, 224))
     img = img_to_array(img)
 
     outputs, weights, num_heads, attention_mask = _visualize.attention_map(model=model.layers[0], image=img)
 
-    heatmap = np.maximum(attention_mask.squeeze(), 0) / tf.math.reduce_max(attention_mask)
-    heatmap = heatmap.numpy()
-
     _img = __ImgReadUtf8__(path)
     _img = cv2.cvtColor(_img, cv2.COLOR_BGR2RGB)
+    _img = cv2.resize(_img, (224, 224))
+
     heatmap_img = cv2.applyColorMap((attention_mask * img).astype(np.uint8), cv2.COLORMAP_JET)
     overlay_img = cv2.addWeighted(heatmap_img, 0.5, _img, 0.5, 0)
 
@@ -125,23 +127,25 @@ def __analysis_ViT__(img, type: ANALYSIS_TYPE_MODEL, id, modelRoot):
 
     else:
         path = img
-        test_image = tf.keras.utils.load_img(img, target_size=(224, 224))
-        x = tf.keras.utils.img_to_array(test_image)
-        x = np.expand_dims(x, axis=0)
-        x = x.astype('float32')
-        x /= 255
 
         model = load_model(modelRoot)
-        preds = model.predict(x)
+        model.compile(loss=tf.keras.losses.CategoricalCrossentropy(label_smoothing = 0.2),
+                      optimizer=tfa.optimizers.RectifiedAdam(learning_rate = 1e-4),
+                      metrics=['accuracy'])
 
-        labels = ["Severity : level0", "Severity : level1", "Severity : level2", "Severity : level3"]
-        pred_label = labels[int(np.argmax(preds))]
+        x = utils.read(path, 224)
+        x = vit.preprocess_inputs(x).reshape(1, 224, 224, 3)
 
-        img = __loadImage__(path)
-        img = np.expand_dims(img, axis=0)
-        cam = __createAttentionMap__(path, model, type, id, img)
+        class_names = ["Severity : level0", "Severity : level1", "Severity : level2", "Severity : level3"]
 
-        return pred_label
+        y = model.predict(x)
+        print(y)
+        result = class_names[y[0].argmax()]
+
+        print(result)
+        __createAttentionMap__(path, model, type, id)
+
+        return result
 
 
 def __analysis__(img, type: ANALYSIS_TYPE_MODEL, id, modelRoot):
@@ -158,7 +162,7 @@ def __analysis__(img, type: ANALYSIS_TYPE_MODEL, id, modelRoot):
         x /= 255
 
         model = load_model(modelRoot)
-        model.summary()
+
         model.compile(loss='categorical_crossentropy',
                       optimizer='adam',
                       metrics=['acc'])
@@ -170,9 +174,7 @@ def __analysis__(img, type: ANALYSIS_TYPE_MODEL, id, modelRoot):
 
         np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
 
-        img = __loadImage__(path)
-        img = np.expand_dims(img, axis=0)
-        cam = __createGradCAM__(path, model, type, id, img)
+        __createGradCAM__(path, model, type, id, img)
 
         return names
 

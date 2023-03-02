@@ -49,7 +49,7 @@ def read(filepath_or_buffer: ImageInputType, size, timeout=None):
             raise FileNotFoundError(
                 "Could not find image at path: " + filepath_or_buffer
             )
-        image = cv2.imread(filepath_or_buffer)
+        image = cv2.imdecode(np.fromfile(filepath_or_buffer, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
     if image is None:
         raise ValueError(f"An error occurred reading {filepath_or_buffer}.")
     # We use cvtColor here instead of just ret[..., ::-1]
