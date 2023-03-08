@@ -1,3 +1,5 @@
+import glob
+
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,6 +8,8 @@ import os
 import tensorflow_addons as tfa
 
 from keras.utils import img_to_array, load_img
+from keras_preprocessing.image import ImageDataGenerator
+
 from include.vit_keras import _visualize
 from include.vit_keras import vit, utils
 from src.Frameworks.Models.ANALYSIS_TYPE_MODEL import ANALYSIS_TYPE_MODEL
@@ -97,7 +101,8 @@ def __createAttentionMap__(img, model, type, id):
 
 def __saveImage__(img, type: ANALYSIS_TYPE_MODEL, id):
     date = today.strftime("%m.%d.%y")
-    ROOT_DIR = os.getenv('APPDATA') + "\\ScalpChecker"
+    # ROOT_DIR = os.getenv('APPDATA') + "\\ScalpChecker"
+    ROOT_DIR = os.getenv('APPDATA') + "\\ScalpChecker\\Results_Keras"
     IMG_DIR = ROOT_DIR + "\\" + str(id)
 
     if not os.path.exists(ROOT_DIR):
@@ -122,30 +127,33 @@ def __saveImage__(img, type: ANALYSIS_TYPE_MODEL, id):
 
 def __analysis_ViT__(img, type: ANALYSIS_TYPE_MODEL, id, modelRoot):
     if img is None:
-        print("Image directory is none.")
-        return False
+        raise Exception("Cannot get image from directory")
 
     else:
         path = img
-
         model = load_model(modelRoot)
-        model.compile(loss=tf.keras.losses.CategoricalCrossentropy(label_smoothing = 0.2),
-                      optimizer=tfa.optimizers.RectifiedAdam(learning_rate = 1e-4),
-                      metrics=['accuracy'])
+        # model.compile(loss=tf.keras.losses.CategoricalCrossentropy(label_smoothing=0.2),
+        #               optimizer=tfa.optimizers.RectifiedAdam(learning_rate=1e-4),
+        #               metrics=['accuracy'],
+        #               activation='softmax')
 
         x = utils.read(path, 224)
         x = vit.preprocess_inputs(x).reshape(1, 224, 224, 3)
 
-        class_names = ["Severity : level0", "Severity : level1", "Severity : level2", "Severity : level3"]
+        classes = {
+            0 : "Severity : level0",
+            1 : "Severity : level1",
+            2 : "Severity : level2",
+            3 : "Severity : level3"
+        }
 
-        y = model.predict(x)
-        print(y)
-        result = class_names[y[0].argmax()]
+        #result = classes[y[0].argmax()]
+        result = np.argmax(model.predict(x), axis=-1)
+        names = [classes[i] for i in result]
 
-        print(result)
         __createAttentionMap__(path, model, type, id)
 
-        return result
+        return names
 
 
 def __analysis__(img, type: ANALYSIS_TYPE_MODEL, id, modelRoot):
@@ -178,6 +186,100 @@ def __analysis__(img, type: ANALYSIS_TYPE_MODEL, id, modelRoot):
 
         return names
 
+def __evaluate__(type : ANALYSIS_TYPE_MODEL, modelRoot):
+    IMG_SIZE = 224
+    BATCH_SIZE = 16
+    EPOCHS = 200
+
+    TEST_PATH_MISE = r'C:\Users\USER\Desktop\2023\ScalpChecker\assets\ScalpChecker\scalpdataset\trainvaltestdata\MISE\split_class4_MISE_480x480\test'
+    TEST_PATH_FIJI = r'C:\Users\USER\Desktop\2023\ScalpChecker\assets\ScalpChecker\scalpdataset\trainvaltestdata\FIJI\split_class4_FIJI_480x480\test'
+    TEST_PATH_NONGPO = r'C:\Users\USER\Desktop\2023\ScalpChecker\assets\ScalpChecker\scalpdataset\trainvaltestdata\NONGPO\split_class4_NONGPO_VER2_480x480\test'
+    TEST_PATH_HONGBAN = r'C:\Users\USER\Desktop\2023\ScalpChecker\assets\ScalpChecker\scalpdataset\trainvaltestdata\HONGBAN\split_class4_HONGBAN_480x480\test'
+    TEST_PATH_BIDUM = r'C:\Users\USER\Desktop\2023\ScalpChecker\assets\ScalpChecker\scalpdataset\trainvaltestdata\BIDUM\split_class4_BIDUM_480x480\test'
+    TEST_PATH_TALMO = r'C:\Users\USER\Desktop\2023\ScalpChecker\assets\ScalpChecker\scalpdataset\trainvaltestdata\TALMO\split_class4_TALMO_480x480\test'
+
+
+    datagen = ImageDataGenerator(rescale=1. / 255,
+                                 samplewise_center=True,
+                                 samplewise_std_normalization=True)
+
+    if type == ANALYSIS_TYPE_MODEL.BIDUM_ViT:
+        typeAsStr = "BIDUM"
+        test_gen = datagen.flow_from_directory(
+            directory=TEST_PATH_BIDUM,
+            batch_size=BATCH_SIZE,
+            seed=1,
+            color_mode='rgb',
+            shuffle=False,
+            class_mode='categorical',
+            target_size=(IMG_SIZE, IMG_SIZE))
+
+    elif type == ANALYSIS_TYPE_MODEL.FIJI_ViT:
+        typeAsStr = "FIJI"
+
+        test_gen = datagen.flow_from_directory(
+            directory=TEST_PATH_FIJI,
+            batch_size=BATCH_SIZE,
+            seed=1,
+            color_mode='rgb',
+            shuffle=False,
+            class_mode='categorical',
+            target_size=(IMG_SIZE, IMG_SIZE))
+
+    elif type == ANALYSIS_TYPE_MODEL.MISE_ViT:
+        typeAsStr = "MISE"
+
+        test_gen = datagen.flow_from_directory(
+            directory=TEST_PATH_MISE,
+            batch_size=BATCH_SIZE,
+            seed=1,
+            color_mode='rgb',
+            shuffle=False,
+            class_mode='categorical',
+            target_size=(IMG_SIZE, IMG_SIZE))
+
+    elif type == ANALYSIS_TYPE_MODEL.TALMO_ViT:
+        typeAsStr = "TALMO"
+
+        test_gen = datagen.flow_from_directory(
+            directory=TEST_PATH_TALMO,
+            batch_size=BATCH_SIZE,
+            seed=1,
+            color_mode='rgb',
+            shuffle=False,
+            class_mode='categorical',
+            target_size=(IMG_SIZE, IMG_SIZE))
+
+    elif type == ANALYSIS_TYPE_MODEL.HONGBAN_ViT:
+        typeAsStr = "HONGBAN"
+
+        test_gen = datagen.flow_from_directory(
+            directory=TEST_PATH_HONGBAN,
+            batch_size=BATCH_SIZE,
+            seed=1,
+            color_mode='rgb',
+            shuffle=False,
+            class_mode='categorical',
+            target_size=(IMG_SIZE, IMG_SIZE))
+
+    elif type == ANALYSIS_TYPE_MODEL.NONGPO_ViT:
+        typeAsStr = "NONGPO"
+
+        test_gen = datagen.flow_from_directory(
+            directory=TEST_PATH_NONGPO,
+            batch_size=BATCH_SIZE,
+            seed=1,
+            color_mode='rgb',
+            shuffle=False,
+            class_mode='categorical',
+            target_size=(IMG_SIZE, IMG_SIZE))
+
+    else:
+        return
+
+    model = load_model(modelRoot)
+    test_evaluate = model.evaluate(test_gen)
+    print(typeAsStr + " : " + str(test_evaluate))
 
 class h5FileManagement:
     def __init__(self):
@@ -208,6 +310,10 @@ class h5FileManagement:
                 else:
                     result = __analysis__(img, type, id, modelRoot)
                     return result
+
+    def evaluate(self, type : ANALYSIS_TYPE_MODEL, modelRoot):
+        with tf.device('/device:GPU:0'):
+            __evaluate__(type, modelRoot)
 
     def detectGPU(self):
         return len(tf.config.list_physical_devices('GPU')) > 0

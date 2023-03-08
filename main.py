@@ -34,49 +34,58 @@ def createTxtFile(text, id):
     with open(ROOT_DIR + "\\Results_" + id + ".txt", "w") as f:
         f.write(text)
 
-
 if __name__ == '__main__':
-    params = readParameters()
-
+    # params = readParameters()
     helper = h5FileManagement()
-    id = params[0]
-    types = params[1].split(", ")
-    img_dir = params[2]
-    modelType = params[3]
-    usingModel = ModelType.Keras
-    result = ""
+    index = 0
 
-    if modelType == "Keras":
-        usingModel = ModelType.Keras
+    usingModel = ModelType.ViT
 
-    elif modelType == "ViT":
-        usingModel = ModelType.ViT
+    helper.evaluate(type.BIDUM_ViT, getModels("BIDUM"))
+    helper.evaluate(type.MISE_ViT, getModels("MISE"))
+    helper.evaluate(type.NONGPO_ViT, getModels("NONGPO"))
+    helper.evaluate(type.HONGBAN_ViT, getModels("HONGBAN"))
+    helper.evaluate(type.TALMO_ViT, getModels("TALMO"))
+    helper.evaluate(type.FIJI_ViT, getModels("FIJI"))
 
-    for i in types:
-        if i == "BIDUM":
-            status_BIDUM = helper.analysis(img_dir, type.BIDUM, id, getModels("BIDUM"), usingModel)
-            result += "BIDUM : %s\n" % status_BIDUM
+    # id = params[0]
+    # types = params[1].split(", ")
+    # img_dir = params[2]
+    # modelType = params[3]
+    # usingModel = ModelType.Keras
+    # result = ""
 
-        elif i == "FIJI":
-            status_FIJI = helper.analysis(img_dir, type.FIJI, id, getModels("FIJI"), usingModel)
-            result += "FIJI : %s\n" % status_FIJI
+    # if modelType == "Keras":
+    #     usingModel = ModelType.Keras
+    #
+    # elif modelType == "ViT":
+    #     usingModel = ModelType.ViT
 
-        elif i == "MISE":
-            status_MISE = helper.analysis(img_dir, type.MISE, id, getModels("MISE"), usingModel)
-            result += "MISE : %s\n" % status_MISE
-
-        elif i == "TALMO":
-            status_TALMO = helper.analysis(img_dir, type.TALMO, id, getModels("TALMO"), usingModel)
-            result += "TALMO : %s\n" % status_TALMO
-
-        elif i == "HONGBAN":
-            status_HONGBAN = helper.analysis(img_dir, type.HONGBAN, id, getModels("HONGBAN"), usingModel)
-            result += "HONGBAN : %s\n" % status_HONGBAN
-
-        elif i == "NONGPO":
-            status_NONGPO = helper.analysis(img_dir, type.NONGPO, id, getModels("NONGPO"), usingModel)
-            result += "NONGPO : %s\n" % status_NONGPO
-
-    print(result)
-    os.remove(os.getenv('APPDATA') + "\\ScalpChecker\\TEMP\\Properties.txt")
-    createTxtFile(result, id)
+    # for i in types:
+    #     if i == "BIDUM":
+    #         status_BIDUM = helper.analysis(img_dir, type.BIDUM, id, getModels("BIDUM"), usingModel)
+    #         result += "BIDUM : %s\n" % status_BIDUM
+    #
+    #     elif i == "FIJI":
+    #         status_FIJI = helper.analysis(img_dir, type.FIJI, id, getModels("FIJI"), usingModel)
+    #         result += "FIJI : %s\n" % status_FIJI
+    #
+    #     elif i == "MISE":
+    #         status_MISE = helper.analysis(img_dir, type.MISE, id, getModels("MISE"), usingModel)
+    #         result += "MISE : %s\n" % status_MISE
+    #
+    #     elif i == "TALMO":
+    #         status_TALMO = helper.analysis(img_dir, type.TALMO, id, getModels("TALMO"), usingModel)
+    #         result += "TALMO : %s\n" % status_TALMO
+    #
+    #     elif i == "HONGBAN":
+    #         status_HONGBAN = helper.analysis(img_dir, type.HONGBAN, id, getModels("HONGBAN"), usingModel)
+    #         result += "HONGBAN : %s\n" % status_HONGBAN
+    #
+    #     elif i == "NONGPO":
+    #         status_NONGPO = helper.analysis(img_dir, type.NONGPO, id, getModels("NONGPO"), usingModel)
+    #         result += "NONGPO : %s\n" % status_NONGPO
+    #
+    # print(result)
+    # os.remove(os.getenv('APPDATA') + "\\ScalpChecker\\TEMP\\Properties.txt")
+    # createTxtFile(result, id)
