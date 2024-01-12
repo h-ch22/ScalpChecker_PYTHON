@@ -60,40 +60,28 @@ def __createGradCAM__(img, model, type, id, x):
     img = np.array(img)[:, :, ::-1]
     img = np.float32(img) / 255
     heatmap = cv2.applyColorMap(np.uint8(255 * heatmap), cv2.COLORMAP_JET)
+
     heatmap = np.float32(heatmap) / 255
     heatmap = cv2.resize(heatmap, (480, 480))
     cam = heatmap + np.float32(img)
 
     cam /= np.max(cam)
-    # heatmap = np.uint8(255 * heatmap)
-    # jet = cm.get_cmap("jet")
-    # jet_colors = jet(np.arange(256))[:, :3]
-    # jet_heatmap = jet_colors[heatmap]
-    #
-    # jet_heatmap = array_to_img(jet_heatmap)
-    # jet_heatmap = jet_heatmap.resize((img.shape[1], img.shape[0]))
-    # jet_heatmap = img_to_array(jet_heatmap)
-
-    # superimposed_img = jet_heatmap * 0.4 + img
 
     __saveImage__(np.uint8(255 * cam), type, id)
 
 
 def __createAttentionMap__(img, model, type, id):
-    path = img
     img = load_img(img, target_size=(224, 224))
     img = img_to_array(img)
 
-    outputs, weights, num_heads, attention_mask = _visualize.attention_map(model=model.layers[0], image=img)
+    attention = _visualize.attention_map(model=model.layers[0], image=img)
+    img = np.float32(img) / 255
+    heatmap = cv2.applyColorMap(np.uint8(255 * attention), cv2.COLORMAP_JET)
+    heatmap = np.float32(heatmap) / 255
+    cam = heatmap + np.float32(img)
+    cam /= np.max(cam)
 
-    _img = __ImgReadUtf8__(path)
-    _img = cv2.cvtColor(_img, cv2.COLOR_BGR2RGB)
-    _img = cv2.resize(_img, (224, 224))
-
-    heatmap_img = cv2.applyColorMap((attention_mask * img).astype(np.uint8), cv2.COLORMAP_JET)
-    overlay_img = cv2.addWeighted(heatmap_img, 0.5, _img, 0.5, 0)
-
-    __saveImage__(overlay_img, type, id)
+    __saveImage__(np.uint8(255 * cam), type, id)
 
 
 def __saveImage__(img, type: AnalysisTypeModel, id):

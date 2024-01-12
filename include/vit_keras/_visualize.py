@@ -51,5 +51,5 @@ def attention_map(model, image):
     mask = cv2.resize(mask / mask.max(), (image.shape[1], image.shape[0]))[
         ..., np.newaxis
     ]
-    # return (mask * image).astype("uint8")
-    return outputs, weights, num_heads, mask
+    return (mask).astype('float32')
+    # return outputs, weights, num_heads, mask
