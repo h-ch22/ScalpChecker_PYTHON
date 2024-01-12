@@ -1,15 +1,13 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-
 block_cipher = None
-
 
 a = Analysis(
     ['main.py'],
     pathex=['C:\\Users\\USER\\AppData\\Roaming\\Python\\Python39\\site-packages\\cv2\\__init__.py'],
     binaries=[],
     datas=[],
-    hiddenimports=[],
+    hiddenimports=['tensorflow', 'numpy', 'tensorflow-addons', 'keras', 'PIL', 'opencv-python', 'cv2'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -19,7 +17,7 @@ a = Analysis(
     cipher=block_cipher,
     noarchive=False,
 )
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+pyz = PYZ(a.pure)
 
 exe = EXE(
     pyz,
@@ -41,7 +39,6 @@ exe = EXE(
 coll = COLLECT(
     exe,
     a.binaries,
-    a.zipfiles,
     a.datas,
     strip=False,
     upx=True,

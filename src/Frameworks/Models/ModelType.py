@@ -1,5 +1,6 @@
 from enum import Enum
 
-class MODEL_TYPE(Enum):
+
+class ModelType(Enum):
     Keras = 0
     ViT = 1

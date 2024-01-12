@@ -1,22 +1,19 @@
-import glob
-
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import os
-import tensorflow_addons as tfa
+import tensorflow_addons
 
 from keras.utils import img_to_array, load_img
-from keras_preprocessing.image import ImageDataGenerator
+from keras.preprocessing.image import ImageDataGenerator
 
 from include.vit_keras import _visualize
 from include.vit_keras import vit, utils
-from src.Frameworks.Models.ANALYSIS_TYPE_MODEL import ANALYSIS_TYPE_MODEL
+from src.Frameworks.Models.AnalysisTypeModel import AnalysisTypeModel
 from keras.models import Model, load_model
 from datetime import date
 
-from src.Frameworks.Models.MODEL_TYPE import MODEL_TYPE
+from src.Frameworks.Models.ModelType import ModelType
 
 today = date.today()
 
@@ -99,10 +96,9 @@ def __createAttentionMap__(img, model, type, id):
     __saveImage__(overlay_img, type, id)
 
 
-def __saveImage__(img, type: ANALYSIS_TYPE_MODEL, id):
+def __saveImage__(img, type: AnalysisTypeModel, id):
     date = today.strftime("%m.%d.%y")
-    # ROOT_DIR = os.getenv('APPDATA') + "\\ScalpChecker"
-    ROOT_DIR = os.getenv('APPDATA') + "\\ScalpChecker\\Results_Keras"
+    ROOT_DIR = os.getenv('APPDATA') + "\\ScalpChecker"
     IMG_DIR = ROOT_DIR + "\\" + str(id)
 
     if not os.path.exists(ROOT_DIR):
@@ -125,29 +121,29 @@ def __saveImage__(img, type: ANALYSIS_TYPE_MODEL, id):
     cv2.imwrite(IMG_DIR + "\\" + str(date) + "_" + type.name + "_" + str(id) + ".png", img)
 
 
-def __analysis_ViT__(img, type: ANALYSIS_TYPE_MODEL, id, modelRoot):
+def __analysis_ViT__(img, type: AnalysisTypeModel, id, modelRoot):
     if img is None:
         raise Exception("Cannot get image from directory")
 
     else:
         path = img
+
+        if not os.path.exists(modelRoot):
+            raise Exception(f"Cannot find model: {modelRoot}")
+
         model = load_model(modelRoot)
-        # model.compile(loss=tf.keras.losses.CategoricalCrossentropy(label_smoothing=0.2),
-        #               optimizer=tfa.optimizers.RectifiedAdam(learning_rate=1e-4),
-        #               metrics=['accuracy'],
-        #               activation='softmax')
 
         x = utils.read(path, 224)
         x = vit.preprocess_inputs(x).reshape(1, 224, 224, 3)
 
         classes = {
-            0 : "Severity : level0",
-            1 : "Severity : level1",
-            2 : "Severity : level2",
-            3 : "Severity : level3"
+            0: "Severity : level0",
+            1: "Severity : level1",
+            2: "Severity : level2",
+            3: "Severity : level3"
         }
 
-        #result = classes[y[0].argmax()]
+        # result = classes[y[0].argmax()]
         result = np.argmax(model.predict(x), axis=-1)
         names = [classes[i] for i in result]
 
@@ -156,7 +152,7 @@ def __analysis_ViT__(img, type: ANALYSIS_TYPE_MODEL, id, modelRoot):
         return names
 
 
-def __analysis__(img, type: ANALYSIS_TYPE_MODEL, id, modelRoot):
+def __analysis__(img, type: AnalysisTypeModel, id, modelRoot):
     if img is None:
         print("Image directory is none.")
         return False
@@ -186,7 +182,8 @@ def __analysis__(img, type: ANALYSIS_TYPE_MODEL, id, modelRoot):
 
         return names
 
-def __evaluate__(type : ANALYSIS_TYPE_MODEL, modelRoot):
+
+def __evaluate__(type: AnalysisTypeModel, modelRoot):
     IMG_SIZE = 224
     BATCH_SIZE = 16
     EPOCHS = 200
@@ -198,12 +195,11 @@ def __evaluate__(type : ANALYSIS_TYPE_MODEL, modelRoot):
     TEST_PATH_BIDUM = r'C:\Users\USER\Desktop\2023\ScalpChecker\assets\ScalpChecker\scalpdataset\trainvaltestdata\BIDUM\split_class4_BIDUM_480x480\test'
     TEST_PATH_TALMO = r'C:\Users\USER\Desktop\2023\ScalpChecker\assets\ScalpChecker\scalpdataset\trainvaltestdata\TALMO\split_class4_TALMO_480x480\test'
 
-
     datagen = ImageDataGenerator(rescale=1. / 255,
                                  samplewise_center=True,
                                  samplewise_std_normalization=True)
 
-    if type == ANALYSIS_TYPE_MODEL.BIDUM_ViT:
+    if type == AnalysisTypeModel.BIDUM_ViT:
         typeAsStr = "BIDUM"
         test_gen = datagen.flow_from_directory(
             directory=TEST_PATH_BIDUM,
@@ -214,7 +210,7 @@ def __evaluate__(type : ANALYSIS_TYPE_MODEL, modelRoot):
             class_mode='categorical',
             target_size=(IMG_SIZE, IMG_SIZE))
 
-    elif type == ANALYSIS_TYPE_MODEL.FIJI_ViT:
+    elif type == AnalysisTypeModel.FIJI_ViT:
         typeAsStr = "FIJI"
 
         test_gen = datagen.flow_from_directory(
@@ -226,7 +222,7 @@ def __evaluate__(type : ANALYSIS_TYPE_MODEL, modelRoot):
             class_mode='categorical',
             target_size=(IMG_SIZE, IMG_SIZE))
 
-    elif type == ANALYSIS_TYPE_MODEL.MISE_ViT:
+    elif type == AnalysisTypeModel.MISE_ViT:
         typeAsStr = "MISE"
 
         test_gen = datagen.flow_from_directory(
@@ -238,7 +234,7 @@ def __evaluate__(type : ANALYSIS_TYPE_MODEL, modelRoot):
             class_mode='categorical',
             target_size=(IMG_SIZE, IMG_SIZE))
 
-    elif type == ANALYSIS_TYPE_MODEL.TALMO_ViT:
+    elif type == AnalysisTypeModel.TALMO_ViT:
         typeAsStr = "TALMO"
 
         test_gen = datagen.flow_from_directory(
@@ -250,7 +246,7 @@ def __evaluate__(type : ANALYSIS_TYPE_MODEL, modelRoot):
             class_mode='categorical',
             target_size=(IMG_SIZE, IMG_SIZE))
 
-    elif type == ANALYSIS_TYPE_MODEL.HONGBAN_ViT:
+    elif type == AnalysisTypeModel.HONGBAN_ViT:
         typeAsStr = "HONGBAN"
 
         test_gen = datagen.flow_from_directory(
@@ -262,7 +258,7 @@ def __evaluate__(type : ANALYSIS_TYPE_MODEL, modelRoot):
             class_mode='categorical',
             target_size=(IMG_SIZE, IMG_SIZE))
 
-    elif type == ANALYSIS_TYPE_MODEL.NONGPO_ViT:
+    elif type == AnalysisTypeModel.NONGPO_ViT:
         typeAsStr = "NONGPO"
 
         test_gen = datagen.flow_from_directory(
@@ -281,17 +277,37 @@ def __evaluate__(type : ANALYSIS_TYPE_MODEL, modelRoot):
     test_evaluate = model.evaluate(test_gen)
     print(typeAsStr + " : " + str(test_evaluate))
 
+
 class h5FileManagement:
     def __init__(self):
         super().__init__()
 
         print("Tensorflow loaded with version %s" % (tf.__version__))
 
-    def analysis(self, img, type: ANALYSIS_TYPE_MODEL, id, modelRoot, modelType):
+    def __copy_image__(self, img, id):
+        ROOT_DIR = os.getenv('APPDATA') + "\\ScalpChecker"
+
+        if not os.path.exists(ROOT_DIR):
+            os.mkdir(ROOT_DIR)
+
+        path = ROOT_DIR + f"\\{id}"
+
+        if not os.path.exists(path):
+            os.mkdir(path)
+
+        original_img_path = path + f"\\{id}-Original.png"
+
+        if not os.path.exists(original_img_path):
+            img_copy = __ImgReadUtf8__(img)
+            cv2.imwrite(original_img_path, img_copy)
+
+    def analysis(self, img, type: AnalysisTypeModel, id, modelRoot, modelType):
+        self.__copy_image__(img, id)
+
         if self.detectGPU():
             print("GPU is available, tensorflow will work with GPU : 0")
             with tf.device('/device:GPU:0'):
-                if modelType == MODEL_TYPE.ViT:
+                if modelType == ModelType.ViT:
                     result = __analysis_ViT__(img, type, id, modelRoot)
                     return result
 
@@ -303,7 +319,7 @@ class h5FileManagement:
             print("GPU is not available, tensorflow will work with CPU")
 
             with tf.device('/device:cpu:0'):
-                if modelType == MODEL_TYPE.ViT:
+                if modelType == ModelType.ViT:
                     result = __analysis_ViT__(img, type, id, modelRoot)
                     return result
 
@@ -311,7 +327,7 @@ class h5FileManagement:
                     result = __analysis__(img, type, id, modelRoot)
                     return result
 
-    def evaluate(self, type : ANALYSIS_TYPE_MODEL, modelRoot):
+    def evaluate(self, type: AnalysisTypeModel, modelRoot):
         with tf.device('/device:GPU:0'):
             __evaluate__(type, modelRoot)
 

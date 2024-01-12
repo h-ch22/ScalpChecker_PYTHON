@@ -1,8 +1,8 @@
 from enum import Enum
 from pathlib import Path
 
-class ANALYSIS_TYPE_MODEL(Enum):
 
+class AnalysisTypeModel(Enum):
     BIDUM = Path(__file__).parent.parent.parent.parent.joinpath("models/BIDUM.h5")
     FIJI = Path(__file__).parent.parent.parent.parent.joinpath("models/FIJI.h5")
     HONGBAN = Path(__file__).parent.parent.parent.parent.joinpath("models/HONGBAN.h5")
