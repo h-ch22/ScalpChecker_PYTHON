@@ -1,4 +1,5 @@
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import os
@@ -75,6 +76,8 @@ def __createAttentionMap__(img, model, type, id):
     img = img_to_array(img)
 
     attention = _visualize.attention_map(model=model.layers[0], image=img)
+    attention[attention < 0.5] *= 0.6
+
     img = np.float32(img) / 255
     heatmap = cv2.applyColorMap(np.uint8(255 * attention), cv2.COLORMAP_JET)
     heatmap = np.float32(heatmap) / 255
@@ -107,7 +110,6 @@ def __saveImage__(img, type: AnalysisTypeModel, id):
         os.mkdir(imgPath)
 
     cv2.imwrite(IMG_DIR + "\\" + str(date) + "_" + type.name + "_" + str(id) + ".png", img)
-
 
 def __analysis_ViT__(img, type: AnalysisTypeModel, id, modelRoot):
     if img is None:
